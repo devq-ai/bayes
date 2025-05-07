@@ -65,3 +65,4 @@ Thumbs.db
 
 # Temporary visualization files
 *.png
+**/.claude/settings.local.json
