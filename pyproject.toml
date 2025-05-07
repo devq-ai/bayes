@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bayesian-mcp"
+version = "0.1.0"
+description = "Bayesian reasoning MCP server for LLMs"
+readme = "README.md"
+authors = [
+    {name = "Wrench AI Contributors"},
+]
+license = {text = "MIT"}
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pymc>=5.0.0",
+    "arviz>=0.14.0",
+    "numpy>=1.20.0",
+    "pydantic>=2.0.0",
+    "mcp>=1.6.0",
+    "fastapi>=0.100.0",
+    "matplotlib>=3.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.19.0",
+    "black>=23.0.0",
+    "isort>=5.10.0",
+    "mypy>=1.0.0",
+    "jupyter>=1.0.0",
+]
+
+[tool.setuptools]
+packages = ["bayesian_mcp"]
+
+[tool.black]
+line-length = 88
+target-version = ["py38"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[project.urls]
+"Homepage" = "https://github.com/wrenchchatrepo/bayesian-mcp"
+"Bug Tracker" = "https://github.com/wrenchchatrepo/bayesian-mcp/issues"
