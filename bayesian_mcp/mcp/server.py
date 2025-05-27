@@ -127,7 +127,7 @@ def start_server(host: str = "127.0.0.1", port: int = 8000, log_level: str = "in
         log_level: Logging level
     """
     uvicorn.run(
-        "src.mcp.server:app",
+        "bayesian_mcp.mcp.server:app",
         host=host,
         port=port,
         log_level=log_level,

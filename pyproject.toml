@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -12,19 +12,19 @@ authors = [
 ]
 license = {text = "MIT"}
 requires-python = ">=3.8"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-]
 dependencies = [
     "pymc>=5.0.0",
     "arviz>=0.14.0",
     "numpy>=1.20.0",
+    "scipy>=1.7.0",
     "pydantic>=2.0.0",
     "mcp>=1.6.0",
     "fastapi>=0.100.0",
     "matplotlib>=3.5.0",
+    "seaborn>=0.11.0",
+    "uvicorn>=0.20.0",
+    "requests>=2.25.0",
+    "scikit-learn>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -37,8 +37,9 @@ dev = [
     "jupyter>=1.0.0",
 ]
 
-[tool.setuptools]
-packages = ["bayesian_mcp"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bayesian_mcp*"]
 
 [tool.black]
 line-length = 88
