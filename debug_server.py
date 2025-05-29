@@ -19,7 +19,7 @@ def test_imports():
         print("   ✅ PyMC imports successful")
         
         print("2. Testing engine import...")
-        from bayesian_mcp.bayesian_engine.engine import BayesianEngine
+        from bayes_mcp.bayesian_engine.engine import BayesianEngine
         print("   ✅ Engine import successful")
         
         print("3. Testing engine initialization...")
@@ -32,11 +32,11 @@ def test_imports():
         print("   ✅ FastAPI imports successful")
         
         print("5. Testing server module import...")
-        from bayesian_mcp.mcp.server import app
+        from bayes_mcp.mcp.server import app
         print("   ✅ Server module import successful")
         
         print("6. Testing handlers import...")
-        from bayesian_mcp.mcp.handlers import handle_mcp_request
+        from bayes_mcp.mcp.handlers import handle_mcp_request
         print("   ✅ Handlers import successful")
         
         return True
@@ -50,7 +50,7 @@ def test_simple_model():
     """Test simple model creation."""
     try:
         print("7. Testing simple model creation...")
-        from bayesian_mcp.bayesian_engine.engine import BayesianEngine
+        from bayes_mcp.bayesian_engine.engine import BayesianEngine
         
         engine = BayesianEngine()
         
@@ -96,7 +96,7 @@ def test_server_creation():
     """Test server app creation."""
     try:
         print("9. Testing server app creation...")
-        from bayesian_mcp.mcp.server import app
+        from bayes_mcp.mcp.server import app
         
         # Test that app has expected routes
         routes = [route.path for route in app.routes]
@@ -124,7 +124,7 @@ def test_manual_server_start():
     try:
         print("10. Testing manual server startup...")
         import uvicorn
-        from bayesian_mcp.mcp.server import app
+        from bayes_mcp.mcp.server import app
         
         # Try to start server manually (this will block)
         print("    Starting server on port 8002...")

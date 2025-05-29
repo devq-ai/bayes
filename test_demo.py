@@ -27,7 +27,7 @@ class SimpleBayesianTest:
         try:
             # Start server in background
             self.server_process = subprocess.Popen(
-                [sys.executable, "bayesian_mcp.py"],
+                [sys.executable, "bayes_mcp.py"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 cwd=os.getcwd()

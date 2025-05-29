@@ -41,7 +41,7 @@ class MasterDemo:
         
         if not self.check_server():
             print("❌ Server is not running on port 8002")
-            print("Please start it with: python bayesian_mcp.py --port 8002")
+            print("Please start it with: python bayes_mcp.py --port 8002")
             return False
         
         print("✅ Server is running and healthy")
@@ -416,7 +416,7 @@ class MasterDemo:
         print("  • Comprehensive visualization capabilities")
         
         print(f"\n🎯 Ready for Production Deployment!")
-        print("   Start using: python bayesian_mcp.py --port 8002")
+        print("   Start using: python bayes_mcp.py --port 8002")
         print("   API docs: http://localhost:8002/schema")
         print("   Health check: http://localhost:8002/health")
 

@@ -305,10 +305,10 @@ def main():
         # Check if server is running
         response = requests.get(f"{demo.base_url}/health", timeout=5)
         if response.status_code != 200:
-            print("❌ Server is not running. Start it with: python bayesian_mcp.py --port 8002")
+            print("❌ Server is not running. Start it with: python bayes_mcp.py --port 8002")
             return 1
     except requests.exceptions.RequestException:
-        print("❌ Cannot connect to server. Start it with: python bayesian_mcp.py --port 8002")
+        print("❌ Cannot connect to server. Start it with: python bayes_mcp.py --port 8002")
         return 1
     
     demo.run_demo()

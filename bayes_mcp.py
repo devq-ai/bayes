@@ -6,7 +6,7 @@ This script provides a simple entry point for starting the MCP server.
 """
 
 import sys
-from bayesian_mcp.main import main
+from bayes_mcp.main import main
 
 if __name__ == "__main__":
     sys.exit(main())

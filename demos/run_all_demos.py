@@ -42,7 +42,7 @@ class BayesianMCPDemo:
         
         # Start server in background
         self.server_process = subprocess.Popen(
-            ["python", "bayesian_mcp.py", "--host", "127.0.0.1", "--port", "8000"],
+            ["python", "bayes_mcp.py", "--host", "127.0.0.1", "--port", "8000"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
