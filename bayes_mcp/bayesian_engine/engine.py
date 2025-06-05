@@ -2,6 +2,7 @@
 
 import time
 import logging
+import os
 from typing import Dict, List, Any, Tuple, Optional
 
 import pymc as pm
@@ -9,6 +10,24 @@ import numpy as np
 import arviz as az
 
 logger = logging.getLogger(__name__)
+
+# Configure Logfire if available
+try:
+    import logfire
+    
+    # Only initialize if token is available
+    if os.getenv("LOGFIRE_TOKEN"):
+        logfire.configure(
+            token=os.getenv("LOGFIRE_TOKEN"),
+            project_name=os.getenv("LOGFIRE_PROJECT_NAME", "bayes-mcp"),
+            service_name=os.getenv("LOGFIRE_SERVICE_NAME", "bayes-engine"),
+            environment=os.getenv("LOGFIRE_ENVIRONMENT", "development")
+        )
+        logger.info("Logfire initialized for Bayesian Engine")
+    else:
+        logfire = None
+except ImportError:
+    logfire = None
 
 class BayesianEngine:
     """Core engine for probabilistic reasoning using PyMC.
@@ -22,6 +41,8 @@ class BayesianEngine:
         """Initialize the Bayesian engine."""
         self.belief_models = {}
         logger.info("Bayesian Engine initialized")
+        if logfire:
+            logfire.info("Bayesian Engine initialized", model_count=0)
     
     def create_model(self, model_name: str, variables: Dict[str, Dict]) -> None:
         """Create a Bayesian model with specified variables.
@@ -38,6 +59,10 @@ class BayesianEngine:
                 }
         """
         try:
+            if logfire:
+                with logfire.span("create_model", model_name=model_name, variable_count=len(variables)):
+                    logfire.info(f"Creating Bayesian model: {model_name}", 
+                               variable_names=list(variables.keys()))
             with pm.Model() as model:
                 model_vars = {}
                 observed_vars = {}
@@ -115,8 +140,21 @@ class BayesianEngine:
                 
                 logger.info(f"Created model: {model_name} with {len(model_vars)} variables")
                 
+                if logfire:
+                    logfire.info(f"Model created successfully",
+                               model_name=model_name,
+                               prior_count=len(model_vars),
+                               likelihood_count=len(observed_vars))
+                    logfire.metric("models.created", 1, unit="count", model_name=model_name)
+                    logfire.metric("model.variables", len(model_vars) + len(observed_vars), 
+                                 unit="count", model_name=model_name)
+                
         except Exception as e:
             logger.error(f"Failed to create model {model_name}: {e}")
+            if logfire:
+                logfire.exception(f"Model creation failed",
+                                error_type=type(e).__name__,
+                                model_name=model_name)
             raise
     
     def _parse_expression(self, expr_str: str, variables: Dict[str, Any]) -> Any:
@@ -167,36 +205,93 @@ class BayesianEngine:
             default_kwargs.update(sample_kwargs)
         
         try:
-            with model_data['model']:
-                # Run MCMC sampling
-                logger.info(f"Starting MCMC sampling for model '{model_name}'")
-                trace = pm.sample(**default_kwargs)
-                
-                # Store trace for later use
-                model_data['trace'] = trace
-                
-                # Extract posterior statistics
-                posterior_stats = {}
-                for var_name in trace.posterior.data_vars:
-                    samples = trace.posterior[var_name].values
+            if logfire:
+                with logfire.span("update_beliefs", 
+                                model_name=model_name,
+                                draws=default_kwargs['draws'],
+                                chains=default_kwargs['chains']):
+                    logfire.info(f"Starting MCMC sampling",
+                               model_name=model_name,
+                               sampling_params=default_kwargs)
                     
-                    # Flatten samples from all chains
-                    flat_samples = samples.flatten()
+                    start_time = time.time()
                     
-                    posterior_stats[var_name] = {
-                        "mean": float(np.mean(flat_samples)),
-                        "std": float(np.std(flat_samples)),
-                        "median": float(np.median(flat_samples)),
-                        "q025": float(np.percentile(flat_samples, 2.5)),
-                        "q975": float(np.percentile(flat_samples, 97.5)),
-                        "samples": flat_samples[:100].tolist()  # Limit samples for JSON response
-                    }
-                
-                logger.info(f"MCMC sampling completed for model '{model_name}'")
-                return posterior_stats
+                    with model_data['model']:
+                        # Run MCMC sampling
+                        logger.info(f"Starting MCMC sampling for model '{model_name}'")
+                        trace = pm.sample(**default_kwargs)
+                        
+                        # Store trace for later use
+                        model_data['trace'] = trace
+                        
+                        # Extract posterior statistics
+                        posterior_stats = {}
+                        for var_name in trace.posterior.data_vars:
+                            samples = trace.posterior[var_name].values
+                            
+                            # Flatten samples from all chains
+                            flat_samples = samples.flatten()
+                            
+                            posterior_stats[var_name] = {
+                                "mean": float(np.mean(flat_samples)),
+                                "std": float(np.std(flat_samples)),
+                                "median": float(np.median(flat_samples)),
+                                "q025": float(np.percentile(flat_samples, 2.5)),
+                                "q975": float(np.percentile(flat_samples, 97.5)),
+                                "samples": flat_samples[:100].tolist()  # Limit samples for JSON response
+                            }
+                        
+                        sampling_time = time.time() - start_time
+                        
+                        logger.info(f"MCMC sampling completed for model '{model_name}'")
+                        
+                        logfire.info(f"MCMC sampling completed successfully",
+                                   model_name=model_name,
+                                   sampling_time_ms=sampling_time * 1000,
+                                   variables_sampled=list(posterior_stats.keys()))
+                        logfire.metric("mcmc.sampling_time", sampling_time * 1000, 
+                                     unit="ms", model_name=model_name)
+                        logfire.metric("mcmc.total_samples", 
+                                     default_kwargs['draws'] * default_kwargs['chains'],
+                                     unit="count", model_name=model_name)
+                        
+                        return posterior_stats
+            else:
+                # Original code without Logfire
+                with model_data['model']:
+                    # Run MCMC sampling
+                    logger.info(f"Starting MCMC sampling for model '{model_name}'")
+                    trace = pm.sample(**default_kwargs)
+                    
+                    # Store trace for later use
+                    model_data['trace'] = trace
+                    
+                    # Extract posterior statistics
+                    posterior_stats = {}
+                    for var_name in trace.posterior.data_vars:
+                        samples = trace.posterior[var_name].values
+                        
+                        # Flatten samples from all chains
+                        flat_samples = samples.flatten()
+                        
+                        posterior_stats[var_name] = {
+                            "mean": float(np.mean(flat_samples)),
+                            "std": float(np.std(flat_samples)),
+                            "median": float(np.median(flat_samples)),
+                            "q025": float(np.percentile(flat_samples, 2.5)),
+                            "q975": float(np.percentile(flat_samples, 97.5)),
+                            "samples": flat_samples[:100].tolist()  # Limit samples for JSON response
+                        }
+                    
+                    logger.info(f"MCMC sampling completed for model '{model_name}'")
+                    return posterior_stats
                 
         except Exception as e:
             logger.error(f"MCMC sampling failed for model '{model_name}': {e}")
+            if logfire:
+                logfire.exception(f"MCMC sampling failed",
+                                error_type=type(e).__name__,
+                                model_name=model_name)
             raise
     
     def predict(self, model_name: str, 

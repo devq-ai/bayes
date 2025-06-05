@@ -7,18 +7,44 @@ Engine's functionality through a standardized API.
 
 import json
 import logging
+import os
 from typing import Dict, Any, List, Optional
 
 from fastapi import FastAPI, Request, Response, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
+from dotenv import load_dotenv
 
 from .handlers import handle_mcp_request
+
+# Load environment variables
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Configure Logfire if available
+logfire_initialized = False
+try:
+    import logfire
+    
+    # Initialize Logfire if token is available
+    logfire_token = os.getenv("LOGFIRE_TOKEN")
+    if logfire_token:
+        logfire.configure(
+            token=logfire_token,
+            service_name=os.getenv("LOGFIRE_SERVICE_NAME", "bayes-mcp-server"),
+            environment=os.getenv("LOGFIRE_ENVIRONMENT", "development")
+        )
+        logfire_initialized = True
+        logger.info("Logfire initialized successfully")
+    else:
+        logger.info("Logfire token not found, running without Logfire")
+except ImportError:
+    logger.info("Logfire not installed, running without observability")
+    logfire = None
 
 # Create FastAPI app
 app = FastAPI(
@@ -36,10 +62,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Instrument FastAPI with Logfire if available
+if logfire and logfire_token:
+    logfire.instrument_fastapi(app)
+    logger.info("FastAPI instrumented with Logfire")
+
 
 @app.get("/")
 async def root():
     """Root endpoint for the API."""
+    if logfire:
+        logfire.info("Root endpoint accessed")
     return {"message": "Bayesian MCP Server is running"}
 
 
@@ -63,6 +96,10 @@ async def mcp_endpoint(request: Request):
         
         # Validate structure
         if "function_name" not in body or "parameters" not in body:
+            if logfire:
+                logfire.warning("Invalid MCP request format", 
+                               missing_fields=["function_name" if "function_name" not in body else None,
+                                             "parameters" if "parameters" not in body else None])
             raise HTTPException(
                 status_code=400, 
                 detail="Invalid request format. Must include 'function_name' and 'parameters'."
@@ -74,15 +111,34 @@ async def mcp_endpoint(request: Request):
         
         # Log the request
         logger.info(f"MCP request: {function_name}")
-        
-        # Handle the request
-        result = handle_mcp_request(function_name, parameters)
+        if logfire:
+            with logfire.span("mcp_request", function_name=function_name):
+                logfire.info(f"Processing MCP request", 
+                           function_name=function_name,
+                           parameter_count=len(parameters))
+                
+                # Handle the request
+                result = handle_mcp_request(function_name, parameters)
+                
+                # Log successful completion
+                logfire.info(f"MCP request completed successfully",
+                           function_name=function_name,
+                           success=result.get("success", True))
+        else:
+            # Handle the request without Logfire
+            result = handle_mcp_request(function_name, parameters)
         
         # Return the response
         return JSONResponse(content=result)
         
     except Exception as e:
         logger.error(f"Error handling MCP request: {str(e)}")
+        if logfire:
+            logfire.exception(f"MCP request error",
+                            error_type=type(e).__name__,
+                            error_message=str(e),
+                            function_name=body.get("function_name", "unknown"))
+        
         return JSONResponse(
             status_code=500,
             content={
